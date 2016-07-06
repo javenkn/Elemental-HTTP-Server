@@ -13,16 +13,16 @@ var server = http.createServer((request, response) => {
       response.statusMessage = 'Not Found';
       filepath = PUBLIC + '/404.html';
       fs.readFile(filepath, 'utf8', (error, data) => {
-        response._contentLength = data.length;
+        response._contentLength = data.length + 15;
         response.write(data);
-        response.end('Done sending.');
+        response.end('\nDone sending.\n');
       });
     }else{ // if the file exists
       response.statusCode = 200;
       response.statusMessage = 'OK';
-      response._contentLength = data.length;
+      response._contentLength = data.length + 15;
       response.write(data);
-      response.end('Done sending.');
+      response.end('\nDone sending.\n');
     }
   });
 });
