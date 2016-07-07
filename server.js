@@ -27,10 +27,9 @@ var server = http.createServer((request, response) => {
     }
 
     // for /elements add a .html to it so that we can check if
-    if(filepath.slice(-5) !== '.html') {
+    if(filepath.slice(-5) !== '.html' && filepath.slice(-4) !== '.css') {
       filepath = filepath + '.html';
     }
-    // console.log(HTMLContent);
 
     fs.readFile(filepath, 'utf8', (error, data) => {
       if(error){ // if there is an error (file doesn't exist)
