@@ -3,6 +3,7 @@ var fs = require('fs');
 var querystring = require('querystring');
 var CONFIG = require('./config');
 var PUBLIC = './public';
+var elementCount = 2;
 
 var server = http.createServer((request, response) => {
   console.log('Somebody connected.');
@@ -36,7 +37,9 @@ var server = http.createServer((request, response) => {
         response.statusCode = 404;
         response.statusMessage = 'Not Found';
         if(request.method === 'POST') {
+          elementCount++;
           sendPostResponse(response, filepath, HTMLContent);
+          updateIndex(elementCount, filepath.slice(8), postValues);
         } else {
           filepath = PUBLIC + '/404.html';
           fs.readFile(filepath, 'utf8', (error, data) => {
@@ -120,4 +123,28 @@ function sendResponse (request, response, filepath, HTMLContent, data) {
     response.setHeader('Content-Length', data.length);
     response.end();
   }
+}
+
+function updateIndex (count, filename, array) {
+  var filepath = PUBLIC + '/index.html';
+  var newResource = `    <li>
+      <a href="` + filename + `">` + array[0] + `</a>
+    </li>`;
+  fs.readFile(filepath, 'utf8', (error, data) => {
+    if(error) throw (error);
+    var dataArr = data.split('\n');
+    var countData = dataArr[10].split(''); // splits it into letters
+    countData.splice(-6,1, count); // splices out the count number
+    var newIndexLine = countData.join(''); // rejoins the line
+    // splices out the original count and replaces it with the new count line
+    dataArr.splice(10, 1, newIndexLine);
+    // adds the new resource link for the specific element
+    dataArr.splice(-4, 0, newResource);
+    var updatedIndex = dataArr.join('\n'); // rejoins everything with a new line
+
+    fs.writeFile(filepath, updatedIndex, 'utf8', (error) => {
+      if(error) throw error;
+      console.log('Finished writing.');
+    });
+  });
 }
