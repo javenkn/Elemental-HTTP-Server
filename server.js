@@ -13,16 +13,24 @@ var server = http.createServer((request, response) => {
       response.statusMessage = 'Not Found';
       filepath = PUBLIC + '/404.html';
       fs.readFile(filepath, 'utf8', (error, data) => {
-        response._contentLength = data.length + 15;
-        response.write(data);
-        response.end('\nDone sending.\n');
+        if(request.method === 'GET') {
+          response.setHeader('Content-Length', data.length);
+          response.write(data);
+        }else if(request.method === 'HEAD') {
+          response.setHeader('Content-Length', data.length);
+        }
+        response.end();
       });
     }else{ // if the file exists
       response.statusCode = 200;
       response.statusMessage = 'OK';
-      response._contentLength = data.length + 15;
-      response.write(data);
-      response.end('\nDone sending.\n');
+      if(request.method === 'GET') {
+        response.setHeader('Content-Length', data.length);
+        response.write(data);
+      } else if(request.method === 'HEAD') {
+        response.setHeader('Content-Length', data.length);
+      }
+      response.end();
     }
   });
 });
