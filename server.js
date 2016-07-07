@@ -99,9 +99,17 @@ function getNeededValues (data, array) {
 
 function sendPostResponse (response, filepath, HTMLContent) {
   fs.writeFile(filepath, HTMLContent,'utf8', (error) => {
+    if(error) throw error;
+
     console.log('Finished writing.');
+    var contentBody = JSON.stringify({success : true});
+    response.writeHead(200, {
+      'Content-Length' : contentBody.length,
+      'Content-Type' : 'application/json'
+    });
+    response.write(contentBody);
+    response.end();
   });
-  response.end();
 }
 
 function sendResponse (request, response, filepath, HTMLContent, data) {
