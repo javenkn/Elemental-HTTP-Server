@@ -4,6 +4,8 @@ var querystring = require('querystring');
 var CONFIG = require('./config');
 var PUBLIC = './public';
 var elementCount = 2;
+var USERNAME = 'foo';
+var PASSWORD = 'bar';
 
 var server = http.createServer((request, response) => {
   console.log('Somebody connected.');
@@ -17,67 +19,87 @@ var server = http.createServer((request, response) => {
   });
 
   request.on('end', () => {
-    getNeededValues(dataBuff, postValues);
+    if(request.headers.authorization){
+      var encodedString = request.headers.authorization.slice(6);
+      var base64Buffer = new Buffer(encodedString, 'base64');
+      var decodedString = base64Buffer.toString();
+      var splitDecodedString = decodedString.split(':');
+      var reqUsername = splitDecodedString[0];
+      var reqPassword = splitDecodedString[1];
 
-    var HTMLContent = createHTMLContent(postValues);
+      if(reqUsername === USERNAME && reqPassword === PASSWORD) {
+        getNeededValues(dataBuff, postValues);
 
-    var filepath = PUBLIC + request.url; // file path
-    // checks if there is no request url
-    if(filepath === './public/') {
-      filepath = PUBLIC + '/index.html';
-    }
+        var HTMLContent = createHTMLContent(postValues);
 
-    // for /elements add a .html to it so that we can check if
-    if(filepath.slice(-5) !== '.html' && filepath.slice(-4) !== '.css') {
-      filepath = filepath + '.html';
-    }
-
-    fs.readFile(filepath, 'utf8', (error, data) => {
-      if(error){ // if there is an error (file doesn't exist)
-        response.statusCode = 404;
-        response.statusMessage = 'Not Found';
-        if(request.method === 'POST') {
-          elementCount++;
-          sendPostResponse(response, filepath, HTMLContent);
-          updateIndex(elementCount, filepath.slice(8), postValues);
-        } else if(request.method === 'PUT') {
-          var putBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
-          sendErrorResponse(response, putBody);
-        } else if(request.method === 'DELETE') {
-          var deleteBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
-          sendErrorResponse(response, deleteBody);
-        } else {
-          filepath = PUBLIC + '/404.html';
-          fs.readFile(filepath, 'utf8', (error, data) => {
-            sendResponse(request, response, filepath, HTMLContent, data);
-          });
+        var filepath = PUBLIC + request.url; // file path
+        // checks if there is no request url
+        if(filepath === './public/') {
+          filepath = PUBLIC + '/index.html';
         }
-      }else{ // if the file exists
-        if(request.method === 'POST') {
-          response.statusCode = 400;
-          response.statusMessage = 'Bad Request';
-          var postBody = JSON.stringify({error : "resource " + request.url + ' exists already.'});
-          sendErrorResponse(response, postBody);
-        } else if(request.method === 'PUT') {
-          sendPutResponse(response, filepath, HTMLContent);
-        } else if(request.method === 'DELETE') {
-          if(filepath === './public/index.html' || filepath === './public/404.html') {
-            response.statusCode = 400;
-            response.statusMessage = 'Bad Request';
-            var deleteIndexBody = JSON.stringify({error : "You cannot delete index.html or 404.html."});
-            sendErrorResponse(response, deleteIndexBody);
-          } else {
-            elementCount--;
-            deleteAndSendResponse(response, filepath);
-            deleteFileIndex(elementCount, filepath.slice(8));
+
+        // for /elements add a .html to it so that we can check if
+        if(filepath.slice(-5) !== '.html' && filepath.slice(-4) !== '.css') {
+          filepath = filepath + '.html';
+        }
+
+        fs.readFile(filepath, 'utf8', (error, data) => {
+          if(error){ // if there is an error (file doesn't exist)
+            response.statusCode = 404;
+            response.statusMessage = 'Not Found';
+            if(request.method === 'POST') {
+              sendPostResponse(response, filepath, HTMLContent);
+              elementCount++;
+              updateIndex(elementCount, filepath.slice(8), postValues);
+            } else if(request.method === 'PUT') {
+              var putBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
+              sendErrorResponse(response, putBody);
+            } else if(request.method === 'DELETE') {
+              var deleteBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
+              sendErrorResponse(response, deleteBody);
+            } else {
+              filepath = PUBLIC + '/404.html';
+              fs.readFile(filepath, 'utf8', (error, data) => {
+                sendResponse(request, response, filepath, HTMLContent, data);
+              });
+            }
+          }else{ // if the file exists
+            if(request.method === 'POST') {
+              response.statusCode = 400;
+              response.statusMessage = 'Bad Request';
+              var postBody = JSON.stringify({error : "resource " + request.url + ' exists already.'});
+              sendErrorResponse(response, postBody);
+            } else if(request.method === 'PUT') {
+              sendPutResponse(response, filepath, HTMLContent);
+            } else if(request.method === 'DELETE') {
+              if(filepath === './public/index.html' || filepath === './public/404.html') {
+                response.statusCode = 400;
+                response.statusMessage = 'Bad Request';
+                var deleteIndexBody = JSON.stringify({error : "You cannot delete index.html or 404.html."});
+                sendErrorResponse(response, deleteIndexBody);
+              } else {
+                elementCount--;
+                deleteAndSendResponse(response, filepath);
+                deleteFileIndex(elementCount, filepath.slice(8));
+              }
+            } else {
+              response.statusCode = 200;
+              response.statusMessage = 'OK';
+              sendResponse(request, response, filepath, HTMLContent, data);
+            }
           }
-        } else {
-          response.statusCode = 200;
-          response.statusMessage = 'OK';
-          sendResponse(request, response, filepath, HTMLContent, data);
-        }
+        }); // fs read
+      // if username and password statement
+      } else {
+        var errorBody = '<html><body>Invalid Authentication Credentials</body></html>';
+        response.writeHead(401, 'Unauthorized', {
+          'Content-Length' : errorBody.length,
+          'WWW-Authenticate' : 'Basic realm="myRealm"'
+        });
+        response.write(errorBody);
+        response.end();
       }
-    }); // fs read
+    }
   }); // end event code
 
 }); // server
