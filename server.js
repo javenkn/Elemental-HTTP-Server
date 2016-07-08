@@ -61,7 +61,16 @@ var server = http.createServer((request, response) => {
         } else if(request.method === 'PUT') {
           sendPutResponse(response, filepath, HTMLContent);
         } else if(request.method === 'DELETE') {
-          deleteAndSendResponse(response, filepath);
+          if(filepath === './public/index.html' || filepath === './public/404.html') {
+            response.statusCode = 400;
+            response.statusMessage = 'Bad Request';
+            var deleteIndexBody = JSON.stringify({error : "You cannot delete index.html or 404.html."});
+            sendErrorResponse(response, deleteIndexBody);
+          } else {
+            elementCount--;
+            deleteAndSendResponse(response, filepath);
+            deleteFileIndex(elementCount, filepath.slice(8));
+          }
         } else {
           response.statusCode = 200;
           response.statusMessage = 'OK';
@@ -173,7 +182,7 @@ function updateIndex (count, filename, array) {
       <a href="` + filename + `">` + array[0] + `</a>
     </li>`;
   fs.readFile(filepath, 'utf8', (error, data) => {
-    if(error) throw (error);
+    if(error) throw error;
     var dataArr = data.split('\n');
     var countData = dataArr[10].split(''); // splits it into letters
     countData.splice(-6,1, count); // splices out the count number
@@ -185,6 +194,37 @@ function updateIndex (count, filename, array) {
     var updatedIndex = dataArr.join('\n'); // rejoins everything with a new line
 
     fs.writeFile(filepath, updatedIndex, 'utf8', (error) => {
+      if(error) throw error;
+      console.log('Updated index.html.');
+    });
+  });
+}
+
+function deleteFileIndex (count, filepath) {
+  var indexPath = PUBLIC + '/index.html';
+  var lowercaseArr = filepath.slice(1, -5).split('');
+  var cap = lowercaseArr[0].toUpperCase(); // capitalizes first letter
+  lowercaseArr.splice(0,1,cap); // replaces lowercase first letter with capitalized letter
+  var filename = lowercaseArr.join(''); // joins it into the revised word
+  var deleteLine =`      <a href=\"` + filepath + `\">` + filename + `<\/a>`;
+
+  fs.readFile(indexPath, 'utf8', (error, data) => {
+    if(error) throw error;
+    var dataArr = data.split('\n');
+    // checks if the deleteLine is in the array
+    var deleteIndex = dataArr.indexOf(deleteLine);
+
+    var countData = dataArr[10].split(''); // splits it into letters
+    countData.splice(-6,1, count); // splices out the count number
+    var newIndexLine = countData.join(''); // rejoins the line
+    // splices out the original count and replaces it with the new count line
+    dataArr.splice(10, 1, newIndexLine);
+
+    //delete the specific lines
+    dataArr.splice(deleteIndex-1, 3);
+    var updatedIndex = dataArr.join('\n');
+
+    fs.writeFile(indexPath, updatedIndex, 'utf8', (error) => {
       if(error) throw error;
       console.log('Updated index.html.');
     });
