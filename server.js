@@ -38,6 +38,14 @@ var server = http.createServer((request, response) => {
           elementCount++;
           sendPostResponse(response, filepath, HTMLContent);
           updateIndex(elementCount, filepath.slice(8), postValues);
+        } else if(request.method === 'PUT') {
+          var contentBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
+          response.writeHead(404, 'Not Found', {
+            'Content-Length' : contentBody.length,
+            'Content-Type' : 'application/json'
+          });
+          response.write(contentBody);
+          response.end();
         } else {
           response.statusCode = 404;
           response.statusMessage = 'Not Found';
@@ -50,6 +58,8 @@ var server = http.createServer((request, response) => {
         if(request.method === 'POST') {
           response.writeHead(400, 'Bad Request');
           response.end();
+        } else if(request.method === 'PUT') {
+          sendPutResponse(response, filepath, HTMLContent);
         } else {
           response.statusCode = 200;
           response.statusMessage = 'OK';
@@ -106,6 +116,21 @@ function sendPostResponse (response, filepath, HTMLContent) {
 
     var contentBody = JSON.stringify({success : true});
     console.log('Finished writing.');
+    response.writeHead(200, 'OK', {
+      'Content-Length' : contentBody.length,
+      'Content-Type' : 'application/json'
+    });
+    response.write(contentBody);
+    response.end();
+  });
+}
+
+function sendPutResponse (response, filepath, HTMLContent) {
+  fs.writeFile(filepath, HTMLContent, 'utf8', (error) => {
+    if(error) throw error;
+
+    var contentBody = JSON.stringify({success : true});
+    console.log('Finished updating.');
     response.writeHead(200, 'OK', {
       'Content-Length' : contentBody.length,
       'Content-Type' : 'application/json'
