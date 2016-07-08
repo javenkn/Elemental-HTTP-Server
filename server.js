@@ -34,21 +34,19 @@ var server = http.createServer((request, response) => {
 
     fs.readFile(filepath, 'utf8', (error, data) => {
       if(error){ // if there is an error (file doesn't exist)
+        response.statusCode = 404;
+        response.statusMessage = 'Not Found';
         if(request.method === 'POST') {
           elementCount++;
           sendPostResponse(response, filepath, HTMLContent);
           updateIndex(elementCount, filepath.slice(8), postValues);
         } else if(request.method === 'PUT') {
           var putBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
-          response.writeHead(404, 'Not Found', {
-            'Content-Length' : putBody.length,
-            'Content-Type' : 'application/json'
-          });
-          response.write(putBody);
-          response.end();
+          sendErrorResponse(response, putBody);
+        } else if(request.method === 'DELETE') {
+          var deleteBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
+          sendErrorResponse(response, deleteBody);
         } else {
-          response.statusCode = 404;
-          response.statusMessage = 'Not Found';
           filepath = PUBLIC + '/404.html';
           fs.readFile(filepath, 'utf8', (error, data) => {
             sendResponse(request, response, filepath, HTMLContent, data);
@@ -56,13 +54,10 @@ var server = http.createServer((request, response) => {
         }
       }else{ // if the file exists
         if(request.method === 'POST') {
+          response.statusCode = 400;
+          response.statusMessage = 'Bad Request';
           var postBody = JSON.stringify({error : "resource " + request.url + ' exists already.'});
-          response.writeHead(400, 'Bad Request', {
-            'Content-Length' : postBody.length,
-            'Content-Type' : 'application/json'
-          });
-          response.write(postBody);
-          response.end();
+          sendErrorResponse(response, postBody);
         } else if(request.method === 'PUT') {
           sendPutResponse(response, filepath, HTMLContent);
         } else {
@@ -154,6 +149,15 @@ function sendResponse (request, response, filepath, HTMLContent, data) {
     response.setHeader('Content-Length', data.length);
     response.end();
   }
+}
+
+function sendErrorResponse (response, bodyContent) {
+  response.writeHead(response.statusCode, response.statusMessage, {
+    'Content-Length' : bodyContent.length,
+    'Content-Type' : 'application/json'
+  });
+  response.write(bodyContent);
+  response.end();
 }
 
 function updateIndex (count, filename, array) {
