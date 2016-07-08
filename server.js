@@ -94,7 +94,7 @@ var server = http.createServer((request, response) => {
         var errorBody = '<html><body>Invalid Authentication Credentials</body></html>';
         response.writeHead(401, 'Unauthorized', {
           'Content-Length' : errorBody.length,
-          'WWW-Authenticate' : 'Basic realm="myRealm"'
+          'WWW-Authenticate' : 'Basic realm="Secure Area"'
         });
         response.write(errorBody);
         response.end();
