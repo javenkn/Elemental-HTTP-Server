@@ -34,24 +34,25 @@ var server = http.createServer((request, response) => {
 
     fs.readFile(filepath, 'utf8', (error, data) => {
       if(error){ // if there is an error (file doesn't exist)
-        response.statusCode = 404;
-        response.statusMessage = 'Not Found';
         if(request.method === 'POST') {
           elementCount++;
           sendPostResponse(response, filepath, HTMLContent);
           updateIndex(elementCount, filepath.slice(8), postValues);
         } else {
+          response.statusCode = 404;
+          response.statusMessage = 'Not Found';
           filepath = PUBLIC + '/404.html';
           fs.readFile(filepath, 'utf8', (error, data) => {
             sendResponse(request, response, filepath, HTMLContent, data);
           });
         }
       }else{ // if the file exists
-        response.statusCode = 200;
-        response.statusMessage = 'OK';
         if(request.method === 'POST') {
-          sendPostResponse(response, filepath, HTMLContent);
+          response.writeHead(400, 'Bad Request');
+          response.end();
         } else {
+          response.statusCode = 200;
+          response.statusMessage = 'OK';
           sendResponse(request, response, filepath, HTMLContent, data);
         }
       }
@@ -103,9 +104,9 @@ function sendPostResponse (response, filepath, HTMLContent) {
   fs.writeFile(filepath, HTMLContent,'utf8', (error) => {
     if(error) throw error;
 
-    console.log('Finished writing.');
     var contentBody = JSON.stringify({success : true});
-    response.writeHead(200, {
+    console.log('Finished writing.');
+    response.writeHead(200, 'OK', {
       'Content-Length' : contentBody.length,
       'Content-Type' : 'application/json'
     });
