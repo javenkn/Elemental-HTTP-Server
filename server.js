@@ -60,6 +60,8 @@ var server = http.createServer((request, response) => {
           sendErrorResponse(response, postBody);
         } else if(request.method === 'PUT') {
           sendPutResponse(response, filepath, HTMLContent);
+        } else if(request.method === 'DELETE') {
+          deleteAndSendResponse(response, filepath);
         } else {
           response.statusCode = 200;
           response.statusMessage = 'OK';
@@ -114,14 +116,8 @@ function sendPostResponse (response, filepath, HTMLContent) {
   fs.writeFile(filepath, HTMLContent,'utf8', (error) => {
     if(error) throw error;
 
-    var contentBody = JSON.stringify({success : true});
     console.log('Finished writing.');
-    response.writeHead(200, 'OK', {
-      'Content-Length' : contentBody.length,
-      'Content-Type' : 'application/json'
-    });
-    response.write(contentBody);
-    response.end();
+    sendSuccessResponse(response);
   });
 }
 
@@ -129,15 +125,15 @@ function sendPutResponse (response, filepath, HTMLContent) {
   fs.writeFile(filepath, HTMLContent, 'utf8', (error) => {
     if(error) throw error;
 
-    var contentBody = JSON.stringify({success : true});
     console.log('Finished updating.');
-    response.writeHead(200, 'OK', {
-      'Content-Length' : contentBody.length,
-      'Content-Type' : 'application/json'
-    });
-    response.write(contentBody);
-    response.end();
+    sendSuccessResponse(response);
   });
+}
+
+function deleteAndSendResponse (response, filepath) {
+  fs.unlink(filepath);
+  console.log(filepath.slice(1) + ' has been deleted.');
+  sendSuccessResponse(response);
 }
 
 function sendResponse (request, response, filepath, HTMLContent, data) {
@@ -149,6 +145,17 @@ function sendResponse (request, response, filepath, HTMLContent, data) {
     response.setHeader('Content-Length', data.length);
     response.end();
   }
+}
+
+function sendSuccessResponse (response) {
+  var contentBody = JSON.stringify({success : true});
+
+  response.writeHead(200, 'OK', {
+    'Content-Length' : contentBody.length,
+    'Content-Type' : 'application/json'
+  });
+  response.write(contentBody);
+  response.end();
 }
 
 function sendErrorResponse (response, bodyContent) {
@@ -179,7 +186,7 @@ function updateIndex (count, filename, array) {
 
     fs.writeFile(filepath, updatedIndex, 'utf8', (error) => {
       if(error) throw error;
-      console.log('Finished writing.');
+      console.log('Updated index.html.');
     });
   });
 }
