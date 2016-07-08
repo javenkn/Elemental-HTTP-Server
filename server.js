@@ -39,12 +39,12 @@ var server = http.createServer((request, response) => {
           sendPostResponse(response, filepath, HTMLContent);
           updateIndex(elementCount, filepath.slice(8), postValues);
         } else if(request.method === 'PUT') {
-          var contentBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
+          var putBody = JSON.stringify({error : "resource " + request.url + ' does not exist.'});
           response.writeHead(404, 'Not Found', {
-            'Content-Length' : contentBody.length,
+            'Content-Length' : putBody.length,
             'Content-Type' : 'application/json'
           });
-          response.write(contentBody);
+          response.write(putBody);
           response.end();
         } else {
           response.statusCode = 404;
@@ -56,7 +56,12 @@ var server = http.createServer((request, response) => {
         }
       }else{ // if the file exists
         if(request.method === 'POST') {
-          response.writeHead(400, 'Bad Request');
+          var postBody = JSON.stringify({error : "resource " + request.url + ' exists already.'});
+          response.writeHead(400, 'Bad Request', {
+            'Content-Length' : postBody.length,
+            'Content-Type' : 'application/json'
+          });
+          response.write(postBody);
           response.end();
         } else if(request.method === 'PUT') {
           sendPutResponse(response, filepath, HTMLContent);
