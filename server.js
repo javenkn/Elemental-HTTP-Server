@@ -19,6 +19,7 @@ var server = http.createServer((request, response) => {
   });
 
   request.on('end', () => {
+    // delete all authorization to work without postman
     if(request.headers.authorization){
       var encodedString = request.headers.authorization.slice(6);
       var base64Buffer = new Buffer(encodedString, 'base64');
